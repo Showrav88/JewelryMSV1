@@ -12,6 +12,8 @@ public class MetalRate
     public string Purity { get; set; } = string.Empty;       // Must be string
     public decimal RatePerGram { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public Guid UpdatedBy { get; set; } 
+    public Guid CreatedBy { get; set; }
      // Helper method to convert DB string back to C# Enum when needed
     private T MapToEnum<T>(string value) where T : struct, Enum
     {

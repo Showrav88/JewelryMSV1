@@ -39,3 +39,17 @@ public enum MaterialType
     Platinum,
     Diamond
 }
+public enum StockStatus
+{
+    Available,
+    Sold,
+    Reserved,
+    Out_at_Workshop
+}
+public enum Payment_type
+{
+    Cash,           // Must match 'Cash' in Postgres
+    Card,           // Must match 'Card'
+    bKash,          // Must match 'bKash'
+    Bank_Transfer   // Must match 'Bank_Transfer'
+}

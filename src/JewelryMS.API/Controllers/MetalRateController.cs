@@ -28,16 +28,29 @@ public class MetalRateController : ControllerBase
         return Ok(rates);
     }
 
-    [HttpPut("update")]
-    [Authorize]
-    [HasPermission("update_rates")]
-    public async Task<IActionResult> UpdateDailyRate([FromBody] RateUpdateRequest rate)
+[HttpPut("update")]
+[Authorize]
+[HasPermission("update_rates")]
+public async Task<IActionResult> UpdateDailyRate([FromBody] RateUpdateRequest request)
+{
+    try 
     {
-        var result = await _rateService.UpdateMetalRateAsync(rate, CurrentShopId);
-        
-        if (!result) 
-            return BadRequest(new { message = "Update failed. Check Shop ID permissions." });
+        var userIdString = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(userIdString, out Guid userId)) return Unauthorized();
 
-        return Ok(new { message = "Rate updated successfully" });
+        // 3. Extract the role from the token
+        var userRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value 
+                      ?? User.FindFirst("role")?.Value;
+
+        if (string.IsNullOrEmpty(userRole)) return BadRequest("Role is missing in token.");
+
+        // 4. Pass the userRole to the Service
+        var success = await _rateService.UpdateMetalRateAsync(request, CurrentShopId, userId, userRole);
+        return success ? Ok(new { Message = "Rate updated successfully" }) : BadRequest();
     }
+    catch (ArgumentException ex) 
+    {
+        return BadRequest(new { Error = ex.Message });
+    }
+}
 }

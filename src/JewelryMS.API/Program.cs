@@ -13,10 +13,10 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks; 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Authorization; 
-using JewelryMS.API.Authorization;     
+using JewelryMS.API.Authorization;     
 using JewelryMS.Domain.Interfaces.Services;
 using JewelryMS.Application.Services;
-using JewelryMS.API.Middleware; // Ensure your middleware namespace is included
+using JewelryMS.API.Middleware;
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 var builder = WebApplication.CreateBuilder(args);
@@ -24,10 +24,14 @@ var builder = WebApplication.CreateBuilder(args);
 // --- 1. DATABASE & ENUMS ---
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+
+// Map Database Enums to C# Enums
 dataSourceBuilder.MapEnum<UserRole>("user_role");
 dataSourceBuilder.MapEnum<MetalPurity>("metal_purity");
 dataSourceBuilder.MapEnum<JewelryCategory>("jewelry_category");
 dataSourceBuilder.MapEnum<MaterialType>("material_type");
+dataSourceBuilder.MapEnum<StockStatus>("stock_status");
+dataSourceBuilder.MapEnum<Payment_type>("payment_type");
 
 var dataSource = dataSourceBuilder.Build();
 builder.Services.AddSingleton(dataSource);
@@ -35,17 +39,32 @@ builder.Services.AddSingleton(dataSource);
 // --- HEALTH CHECKS ---
 builder.Services.AddHealthChecks().AddNpgSql(connectionString!);
 
-// --- 2. DAPPER SETUP ---
+// --- 2. CORS CONFIGURATION ---
+// Essential for allowing Frontend (React/Vue/Mobile) to hit the API
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
+// --- 3. DAPPER SETUP ---
 DefaultTypeMap.MatchNamesWithUnderscores = true;
 SqlMapper.AddTypeHandler(typeof(MetalPurity), new UniversalEnumHandler<MetalPurity>());
 SqlMapper.AddTypeHandler(typeof(JewelryCategory), new UniversalEnumHandler<JewelryCategory>());
 SqlMapper.AddTypeHandler(typeof(MaterialType), new UniversalEnumHandler<MaterialType>());
+SqlMapper.AddTypeHandler(typeof(UserRole), new UniversalEnumHandler<UserRole>());
+SqlMapper.AddTypeHandler(typeof(StockStatus), new UniversalEnumHandler<StockStatus>());
+SqlMapper.AddTypeHandler(typeof(Payment_type), new UniversalEnumHandler<Payment_type>());
 
 builder.Services.AddControllers()
     .AddApplicationPart(Assembly.GetExecutingAssembly())
     .AddControllersAsServices();
 
-// --- SWAGGER CONFIGURATION ---
+// --- 4. SWAGGER / OPENAPI ---
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -72,24 +91,28 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddHttpContextAccessor();
 
-// --- REPOSITORIES ---
+// --- 5. DEPENDENCY INJECTION (Repositories & Services) ---
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IPublicProductRepository, PublicProductRepository>();
 builder.Services.AddScoped<IMetalRateRepository, MetalRateRepository>();
 builder.Services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
-// --- SERVICES ---
+builder.Services.AddScoped<ISaleRepository, SaleRepository>();
+
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMetalRateService, MetalRateService>();
 builder.Services.AddScoped<IPublicProductService, PublicProductService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ISaleService, SaleService>();
 
-// --- 3. ROLE PERMISSION LOGIC ---
+
+// --- 6. AUTHORIZATION LOGIC ---
 builder.Services.AddSingleton<IAuthorizationHandler, PermissionHandler>();
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
 
-// --- 4. JWT AUTHENTICATION (UPDATED FOR CUSTOM 401) ---
+// --- 7. JWT AUTHENTICATION ---
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new Exception("JWT Key missing!");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -107,19 +130,29 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ClockSkew = TimeSpan.Zero 
         };
 
-        // --- ADDED THIS TO HANDLE 401 CUSTOM MESSAGES ---
         options.Events = new JwtBearerEvents
         {
             OnChallenge = async context =>
             {
-                context.HandleResponse(); // Skip default blank response
+                context.HandleResponse();
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 context.Response.ContentType = "application/json";
                 await context.Response.WriteAsJsonAsync(new
                 {
                     status = 401,
                     error = "Unauthorized",
-                    message = "Access denied. A valid token is required to access this resource."
+                    message = "Access denied. A valid token is required."
+                });
+            },
+            OnForbidden = async context => // Added 403 Forbidden Custom Message
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsJsonAsync(new
+                {
+                    status = 403,
+                    error = "Forbidden",
+                    message = "You do not have the required permissions for this action."
                 });
             }
         };
@@ -129,7 +162,7 @@ builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
-// --- 5. MIDDLEWARE PIPELINE ---
+// --- 8. MIDDLEWARE PIPELINE ---
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
@@ -137,19 +170,21 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "JewelryMS API v1"));
 }
 
+app.UseCors("AllowAll"); // Enable CORS
 app.UseStaticFiles();
 app.UseRouting();
+
 app.MapHealthChecks("/health");
 
-// IMPORTANT: Middleware order ensures the response is intercepted correctly
+// CRITICAL ORDER: Authenticate -> Set SQL Session -> Authorize
+app.UseAuthentication(); 
 app.UseMiddleware<PermissionMiddleware>(); 
-app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 app.Run();
 
-// --- 6. ENUM HANDLER ---
+// --- 9. ENUM HANDLER ---
 public class UniversalEnumHandler<T> : SqlMapper.TypeHandler<T> where T : struct, Enum
 {
     public override void SetValue(IDbDataParameter parameter, T value) => parameter.Value = value.ToString();

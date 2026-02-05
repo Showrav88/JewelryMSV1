@@ -9,5 +9,5 @@ public interface IMetalRateRepository
 {
     Task<MetalRate?> GetByPurityAsync(Guid shopId, string purity);
     Task<IEnumerable<MetalRate>> GetShopRatesAsync(Guid shopId);
-    Task<bool> UpdateRateAsync(MetalRate rate);
+    Task<bool> UpdateRateAsync(MetalRate rate, MetalRate? oldRate,string userRole);
 }

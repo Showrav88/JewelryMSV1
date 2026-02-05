@@ -5,5 +5,5 @@ namespace JewelryMS.Domain.Interfaces.Services;
 public interface IMetalRateService
 {
     Task<IEnumerable<RateResponse>> GetRatesForCurrentShopAsync(Guid shopId);
-    Task<bool> UpdateMetalRateAsync(RateUpdateRequest rate, Guid currentShopId);
+    Task<bool> UpdateMetalRateAsync(RateUpdateRequest request, Guid currentShopId, Guid userId,string userRole);
 }
