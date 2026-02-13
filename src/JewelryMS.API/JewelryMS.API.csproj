@@ -10,6 +10,7 @@
     <PackageReference Include="AspNetCore.HealthChecks.NpgSql" Version="9.0.0" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
+    <PackageReference Include="QuestPDF" Version="2025.12.4" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" /> 
 </ItemGroup>
 

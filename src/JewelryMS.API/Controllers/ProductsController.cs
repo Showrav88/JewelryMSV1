@@ -112,4 +112,12 @@ public async Task<IActionResult> UpdateProduct(Guid id, [FromBody] ProductUpdate
         if (!success) return NotFound("Product not found.");
         return Ok("Product deleted.");
     }
+
+    [HttpGet("metadata")]
+    [Authorize]
+public async Task<IActionResult> GetMetadata()
+{
+    var metadata = await _productService.GetProductMetadataAsync();
+    return Ok(metadata);
+}
 }

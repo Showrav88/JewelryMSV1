@@ -18,4 +18,7 @@ public interface IProductService
     Task<bool> UpdateProductAsync(Guid id, ProductUpdateRequest request, Guid userId, string role);
     
     Task<bool> DeleteProductAsync(Guid id, Guid userId, string role);
+
+    Task<ProductMetadataResponse> GetProductMetadataAsync();
+    
 }

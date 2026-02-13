@@ -14,5 +14,10 @@ public class ProductResponse
     public decimal NetWeight { get; set; }
     public decimal MakingCharge { get; set; }
     public string Status { get; set; } = string.Empty;
+    public decimal CostMetalRate { get; set; } // Rate per gram when bought
+    public decimal CostMakingCharge { get; set; } // Total making paid to craftsman
     public DateTimeOffset UpdatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public Guid CreatedBy { get; set; }
+    public Guid UpdatedBy { get; set; }
 }

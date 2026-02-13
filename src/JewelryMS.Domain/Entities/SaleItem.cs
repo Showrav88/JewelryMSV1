@@ -9,6 +9,7 @@ public class SaleItem
     public Guid ProductId { get; set; }
     public decimal SoldPricePerGram { get; set; }
     public decimal SoldMakingCharge { get; set; }
+    public decimal MakingChargeDiscount { get; set; }
     public decimal ItemTotal { get; set; }
     public decimal ItemCostTotal { get; set; } // (NetWeight * CostMetalRate) + CostMakingCharge
     public decimal ItemProfit { get; set; }    // ItemTotal - ItemCostTotal

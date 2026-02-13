@@ -17,6 +17,9 @@ using JewelryMS.API.Authorization;
 using JewelryMS.Domain.Interfaces.Services;
 using JewelryMS.Application.Services;
 using JewelryMS.API.Middleware;
+using QuestPDF.Infrastructure;
+using JewelryMS.Domain.Interfaces;           // For IUnitOfWork
+using JewelryMS.Infrastructure.Data;        // For UnitOfWork (or wherever your UOW implementation is)
 
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 var builder = WebApplication.CreateBuilder(args);
@@ -106,6 +109,7 @@ builder.Services.AddScoped<IPublicProductService, PublicProductService>();
 builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 
 // --- 6. AUTHORIZATION LOGIC ---
@@ -159,6 +163,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+QuestPDF.Settings.License = LicenseType.Community;
 
 var app = builder.Build();
 
