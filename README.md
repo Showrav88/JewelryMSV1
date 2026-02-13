@@ -27,7 +27,24 @@ Middleware: Custom global exception handling and authorization filters.
 
 Time Management: Standardized on TIMESTAMPTZ and UTC to ensure consistent operations across different time zones (e.g., Bangladesh Standard Time).
 
-### 🛠️ Tech Stack
+# 4.💎Advanced Business Logic (New in V1.1)
+  1. Transactional Integrity (Unit of Work): Implemented a centralized IUnitOfWork to manage         database transactions. This ensures that if a Sale fails, the Inventory update and Audit
+     logs are automatically rolled back, preventing data corruption.
+     
+  2.Smart Pricing Engine: * The 15% Rule: Implemented a strict business validation where the        BuyingRatePerGram cannot be more than 15% lower than the SellingRatePerGram.
+    Formula: $BuyingRate >= SellingRate * 0.85$
+     
+# 5.Dual-Reporting System (QuestPDF):
+
+1.Full Memo: Comprehensive tax invoice featuring VAT calculations, itemized discounts, and payment breakdowns.
+
+2,Kacha Memo (Gold Intake): A specialized weight acknowledgment receipt for customers exchanging old gold, focusing on Net Weight and Purity before final settlement.
+### 🛠️ Tech Stack & package 
+
+Reporting: QuestPDF (High-performance PDF generation)
+
+Architecture: Shared Transaction Repository Pattern(uow)
+
 Language: C#
 
 Framework: .NET 9.0
