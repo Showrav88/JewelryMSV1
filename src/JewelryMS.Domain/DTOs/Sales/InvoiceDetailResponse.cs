@@ -33,7 +33,8 @@ public class InvoiceDetailResponse
     public decimal SoldPricePerGram { get; set; }
     public decimal SoldMakingCharge { get; set; }  
     public decimal MakingChargeDiscount { get; set; } 
-    public decimal ItemTotal { get; set; }         
+    public decimal ItemTotal { get; set; }   
+    public decimal GrossAmount { get; set; }      
 
     // --- Exchange Details ---
     public decimal ExchangeNetWeight { get; set; } 

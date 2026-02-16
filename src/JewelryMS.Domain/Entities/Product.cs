@@ -12,11 +12,13 @@ public class Product
     public string BaseMaterial { get; set; } = string.Empty;
     public decimal GrossWeight { get; set; }
     public decimal NetWeight { get; set; }
-    public decimal MakingCharge { get; set; } // Selling Making Charge
+    public decimal MakingCharge { get; set; }
     
-    // NEW: Cost Tracking Fields
-    public decimal CostMetalRate { get; set; } // Rate per gram when bought
-    public decimal CostMakingCharge { get; set; } // Total making paid to craftsman
+    public decimal CostMetalRate { get; set; }
+    public decimal CostMakingCharge { get; set; }
+    
+    // NEW: Workshop Wastage Tracking
+    public decimal WorkshopWastagePercentage { get; set; } = 7.00m; // Default 7%
     
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; } 

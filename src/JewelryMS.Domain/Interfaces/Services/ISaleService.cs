@@ -14,5 +14,7 @@ public interface ISaleService
     Task<byte[]> GenerateInvoicePdfAsync(string invoiceNo);
     Task<byte[]> GenerateKachaMemoPdfAsync(string invoiceNo);
     Task<string> UpdateDraftSaleAsync(UpdateDraftSaleRequest request, Guid shopId, Guid userId);
+    // NEW: Get exchange requirement
+    Task<ExchangeRequirementResponse> GetExchangeRequirementAsync(List<Guid> productIds, decimal extraGoldPercentage, Guid shopId);
     
 }

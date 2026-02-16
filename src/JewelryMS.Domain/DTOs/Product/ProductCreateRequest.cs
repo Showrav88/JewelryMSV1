@@ -1,3 +1,4 @@
+
 using System.ComponentModel.DataAnnotations;
 
 namespace JewelryMS.Domain.DTOs.Product;
@@ -33,10 +34,14 @@ public class ProductCreateRequest
     public decimal MakingCharge { get; set; }
 
     [Required]
-    [Range(0.01, 1000000)] // Ensures you don't enter 0 cost
+    [Range(0.01, 1000000)]
     public decimal CostMetalRate { get; set; }
 
     [Required]
     [Range(0, 1000000)]
     public decimal CostMakingCharge { get; set; }
+
+    // NEW: Workshop Wastage
+    [Range(0, 20)] // Typically 5-10%
+    public decimal WorkshopWastagePercentage { get; set; } = 7.00m;
 }

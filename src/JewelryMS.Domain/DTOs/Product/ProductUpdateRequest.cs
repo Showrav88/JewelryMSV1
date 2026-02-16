@@ -15,6 +15,6 @@ public class ProductUpdateRequest
     // Cost fields for Profit Analysis
     public decimal? CostMetalRate { get; set; } // Rate per gram when bought
     public decimal? CostMakingCharge { get; set; } // Total making paid to crafts
-        
+    public decimal? WorkshopWastagePercentage { get; set; }    
     
 }

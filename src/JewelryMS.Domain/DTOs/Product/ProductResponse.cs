@@ -16,6 +16,7 @@ public class ProductResponse
     public string Status { get; set; } = string.Empty;
     public decimal CostMetalRate { get; set; } // Rate per gram when bought
     public decimal CostMakingCharge { get; set; } // Total making paid to craftsman
+    public decimal WorkshopWastagePercentage { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public Guid CreatedBy { get; set; }

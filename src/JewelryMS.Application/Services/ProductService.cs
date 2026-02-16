@@ -66,6 +66,7 @@ public async Task<Guid> CreateProductAsync(ProductCreateRequest request, Guid sh
             MakingCharge = request.MakingCharge,
             CostMetalRate = request.CostMetalRate,
             CostMakingCharge = request.CostMakingCharge,
+            WorkshopWastagePercentage = request.WorkshopWastagePercentage,
             Status = "Available",
             CreatedBy = userId,
             UpdatedBy = userId
@@ -110,6 +111,7 @@ public async Task<Guid> CreateProductAsync(ProductCreateRequest request, Guid sh
             if (request.MakingCharge.HasValue) existing.MakingCharge = request.MakingCharge.Value;
             if (request.CostMetalRate.HasValue) existing.CostMetalRate = request.CostMetalRate.Value;
             if (request.CostMakingCharge.HasValue) existing.CostMakingCharge = request.CostMakingCharge.Value;
+            if (request.WorkshopWastagePercentage.HasValue) existing.WorkshopWastagePercentage = request.WorkshopWastagePercentage.Value;
             
             if (request.Status != null) {
                 if (request.Status.Equals("Sold", StringComparison.OrdinalIgnoreCase))
@@ -185,6 +187,7 @@ public async Task<Guid> CreateProductAsync(ProductCreateRequest request, Guid sh
         MakingCharge = p.MakingCharge, GrossWeight = p.GrossWeight,
         NetWeight = p.NetWeight, Status = p.Status,
         CostMetalRate = p.CostMetalRate, CostMakingCharge = p.CostMakingCharge,
+        WorkshopWastagePercentage = p.WorkshopWastagePercentage, 
         CreatedAt = p.CreatedAt, UpdatedAt = p.UpdatedAt,
         CreatedBy = p.CreatedBy, UpdatedBy = p.UpdatedBy
     };
