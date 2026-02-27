@@ -1,0 +1,299 @@
+using System;
+using System.Collections.Generic;
+using JewelryMS.Domain.Entities;
+using JewelryMS.Domain.DTOs.Sales;
+
+namespace JewelryMS.Application.Helpers;
+
+/// <summary>
+/// Validates return requests against original product and sale records
+/// Prevents mismatched returns (e.g., returning wrong product)
+/// </summary>
+public static class ReturnValidationHelper
+{
+    public class ReturnValidationResult
+    {
+        public bool IsValid { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public List<string> Errors { get; set; } = new();
+        public string OriginalProductSku { get; set; } = string.Empty;
+        public string ReturnedProductSku { get; set; } = string.Empty;
+        public decimal OriginalWeight { get; set; }
+        public decimal ReturnedWeight { get; set; }
+        public string OriginalPurity { get; set; } = string.Empty;
+        public string ReturnedPurity { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Validates that the returned product matches the original invoice
+    /// </summary>
+   // UPDATE THIS METHOD IN ReturnValidationHelper.cs
+
+/// <summary>
+/// Validates that the returned product matches the original invoice
+/// HANDLES: Invoice data missing gross_weight (uses ExchangeNetWeight as fallback)
+/// </summary>
+public static ReturnValidationResult ValidateProductMatch(
+    InvoiceDetailResponse originalInvoice,
+    Product returnedProduct)
+{
+    var result = new ReturnValidationResult();
+
+    if (originalInvoice == null)
+    {
+        result.Errors.Add("Original invoice not found");
+        result.IsValid = false;
+        return result;
+    }
+
+    if (returnedProduct == null)
+    {
+        result.Errors.Add("Returned product not found");
+        result.IsValid = false;
+        return result;
+    }
+
+    result.OriginalProductSku = originalInvoice.Sku ?? "Unknown";
+    result.ReturnedProductSku = returnedProduct.Sku ?? "Unknown";
+    
+    // ✅ FIX: Use ExchangeNetWeight if GrossWeight is 0 (invoice view bug)
+    decimal originalInvoiceWeight = originalInvoice.GrossWeight > 0 
+        ? originalInvoice.GrossWeight 
+        : (originalInvoice.ExchangeNetWeight > 0 ? originalInvoice.ExchangeNetWeight : 0);
+    
+    result.OriginalWeight = originalInvoiceWeight;
+    result.ReturnedWeight = returnedProduct.GrossWeight;
+    result.OriginalPurity = originalInvoice.Purity ?? "Unknown";
+    result.ReturnedPurity = returnedProduct.Purity ?? "Unknown";
+
+    // 1. Check if product ID matches
+    if (originalInvoice.ProductId != returnedProduct.Id)
+    {
+        result.Errors.Add(
+            $"❌ PRODUCT MISMATCH!\n" +
+            $"Original: {originalInvoice.ProductName} ({result.OriginalProductSku})\n" +
+            $"Returned: {returnedProduct.Name} ({result.ReturnedProductSku})\n" +
+            $"Cannot return a different product!"
+        );
+    }
+
+    // 2. Check if purity matches
+    if (!originalInvoice.Purity?.Equals(returnedProduct.Purity, StringComparison.OrdinalIgnoreCase) ?? false)
+    {
+        result.Errors.Add(
+            $"❌ PURITY MISMATCH!\n" +
+            $"Original: {result.OriginalPurity}\n" +
+            $"Returned: {result.ReturnedPurity}\n" +
+            $"Purity must match original product"
+        );
+    }
+
+    // ✅ 3. Check if weight is approximately correct (allow 0.5g tolerance for wear)
+    // Only validate if we have a valid original weight from invoice
+    if (originalInvoiceWeight > 0)
+    {
+        decimal weightDifference = Math.Abs(originalInvoiceWeight - returnedProduct.GrossWeight);
+        if (weightDifference > 0.5m)
+        {
+            result.Errors.Add(
+                $"⚠️  WEIGHT VARIANCE DETECTED!\n" +
+                $"Original: {originalInvoiceWeight:F3}g\n" +
+                $"Returned: {returnedProduct.GrossWeight:F3}g\n" +
+                $"Difference: {weightDifference:F3}g (tolerance: 0.5g for wear)\n" +
+                $"⚠️  Verify the product is the same item"
+            );
+        }
+    }
+    else
+    {
+        // ⚠️  If we can't get weight from invoice, log warning but don't fail
+        result.Errors.Add(
+            $"⚠️  WARNING: Could not retrieve original weight from invoice\n" +
+            $"Using returned product weight: {returnedProduct.GrossWeight:F3}g\n" +
+            $"Please verify manually that this is the correct product"
+        );
+    }
+
+    // 4. Check if product status is "Sold"
+    if (returnedProduct.Status != "Sold")
+    {
+        result.Errors.Add(
+            $"❌ INVALID PRODUCT STATUS!\n" +
+            $"Product status: {returnedProduct.Status}\n" +
+            $"Only 'Sold' products can be returned"
+        );
+    }
+
+    // Set result
+    result.IsValid = result.Errors.Count == 0;
+    if (result.IsValid)
+    {
+        result.Message = $"✅ Product validation passed.\n" +
+            $"Product: {returnedProduct.Name} ({result.ReturnedProductSku})\n" +
+            $"Purity: {result.ReturnedPurity}\n" +
+            $"Weight: {result.ReturnedWeight:F3}g (Original: {result.OriginalWeight:F3}g)";
+    }
+    else
+    {
+        result.Message = "Return validation failed. See errors below.";
+    }
+
+    return result;
+}
+
+    /// <summary>
+    /// Validates exchange products - ensures new products are compatible with original
+    /// </summary>
+    public static ReturnValidationResult ValidateExchangeProducts(
+        InvoiceDetailResponse originalInvoice,
+        List<Product> newProducts,
+        decimal goldCredit)
+    {
+        var result = new ReturnValidationResult();
+
+        if (newProducts == null || newProducts.Count == 0)
+        {
+            result.Errors.Add("No new products selected for exchange");
+            result.IsValid = false;
+            return result;
+        }
+
+        // Check if all new products match original purity
+        string originalPurity = originalInvoice.Purity ?? "Unknown";
+        foreach (var product in newProducts)
+        {
+            if (product.Purity != originalPurity)
+            {
+                result.Errors.Add(
+                    $"❌ PURITY MISMATCH in new product!\n" +
+                    $"Original purity: {originalPurity}\n" +
+                    $"New product '{product.Name}': {product.Purity}\n" +
+                    $"All exchange products must have matching purity"
+                );
+            }
+
+            if (product.Status != "Available")
+            {
+                result.Errors.Add(
+                    $"❌ UNAVAILABLE PRODUCT!\n" +
+                    $"Product '{product.Name}' status: {product.Status}\n" +
+                    $"Only 'Available' products can be purchased"
+                );
+            }
+        }
+
+        // Check if new products total weight is reasonable
+        decimal newProductsWeight = 0;
+        foreach (var product in newProducts)
+        {
+            newProductsWeight += product.GrossWeight;
+        }
+
+        decimal originalWeight = originalInvoice.ExchangeNetWeight > 0
+            ? originalInvoice.ExchangeNetWeight
+            : originalInvoice.GrossWeight;
+
+        result.OriginalWeight = originalWeight;
+        result.ReturnedWeight = newProductsWeight;
+
+        if (newProductsWeight < (originalWeight * 0.5m))
+        {
+            result.Errors.Add(
+                $"⚠️  SIGNIFICANT WEIGHT REDUCTION!\n" +
+                $"Original weight: {originalWeight:F3}g\n" +
+                $"New products weight: {newProductsWeight:F3}g\n" +
+                $"This is a 50%+ reduction. Verify customer approval."
+            );
+        }
+
+        // Check if gold credit is sufficient
+        decimal estimatedNewProductValue = newProductsWeight * originalInvoice.SoldPricePerGram;
+        if (estimatedNewProductValue > goldCredit)
+        {
+            decimal shortfall = estimatedNewProductValue - goldCredit;
+            result.Errors.Add(
+                $"❌ INSUFFICIENT GOLD CREDIT!\n" +
+                $"New products value: ৳{estimatedNewProductValue:N2}\n" +
+                $"Gold credit available: ৳{goldCredit:N2}\n" +
+                $"Shortfall: ৳{shortfall:N2}\n" +
+                $"Customer must pay additional ৳{shortfall:N2}"
+            );
+        }
+
+        result.IsValid = result.Errors.Count == 0;
+        if (result.IsValid)
+        {
+            result.Message = $"✅ Exchange products validated.\n" +
+                $"New products weight: {newProductsWeight:F3}g\n" +
+                $"Purity: {originalPurity}\n" +
+                $"Gold credit: ৳{goldCredit:N2}";
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Validates cash refund eligibility and amount
+    /// </summary>
+    public static ReturnValidationResult ValidateCashRefund(
+        InvoiceDetailResponse originalInvoice,
+        decimal approvedRefundAmount,
+        string gracePeriodStatus)
+    {
+        var result = new ReturnValidationResult();
+
+        // Get expected refund based on grace period
+        decimal expectedRefund = CalculateExpectedRefund(
+            originalInvoice.GrossWeight,
+            originalInvoice.SoldPricePerGram,
+            gracePeriodStatus);
+
+        if (Math.Abs(expectedRefund - approvedRefundAmount) > 1000) // 1000 bdt tolerance
+        {
+            result.Errors.Add(
+                $"⚠️  REFUND AMOUNT MISMATCH!\n" +
+                $"Expected (based on {gracePeriodStatus}): ৳{expectedRefund:N2}\n" +
+                $"Approved amount: ৳{approvedRefundAmount:N2}\n" +
+                $"Difference: ৳{Math.Abs(expectedRefund - approvedRefundAmount):N2}"
+            );
+        }
+
+        // Ensure refund is not more than original payment
+        decimal originalPayment = originalInvoice.NetPayable;
+        if (approvedRefundAmount > originalPayment)
+        {
+            result.Errors.Add(
+                $"❌ REFUND EXCEEDS ORIGINAL PAYMENT!\n" +
+                $"Original payment: ৳{originalPayment:N2}\n" +
+                $"Refund requested: ৳{approvedRefundAmount:N2}\n" +
+                $"Refund cannot exceed original amount"
+            );
+        }
+
+        result.IsValid = result.Errors.Count == 0;
+        if (result.IsValid)
+        {
+            result.Message = $"✅ Cash refund validated.\n" +
+                $"Grace period: {gracePeriodStatus}\n" +
+                $"Refund amount: ৳{approvedRefundAmount:N2}";
+        }
+
+        return result;
+    }
+
+    private static decimal CalculateExpectedRefund(
+        decimal weight,
+        decimal ratePerGram,
+        string gracePeriodStatus)
+    {
+        decimal creditPercentage = gracePeriodStatus switch
+        {
+            "WithinGracePeriod" => 1.0m,  // 100%
+            "AfterGracePeriod" => 0.90m,  // 90%
+            "CashRefund" => 0.85m,        // 85%
+            _ => 0.85m
+        };
+
+        return weight * ratePerGram * creditPercentage;
+    }
+}

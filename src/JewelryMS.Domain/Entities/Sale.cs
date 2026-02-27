@@ -21,4 +21,5 @@ public class Sale
     public decimal DiscountPercentage { get; set; } // Column 13: discount_percentage
     public string Status { get; set; } = "Draft"; // Column 14: status
     public string? Remarks { get; set; }        // Column 15: remarks
+
 }

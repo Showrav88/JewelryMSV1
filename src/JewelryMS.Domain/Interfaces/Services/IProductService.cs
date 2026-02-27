@@ -2,6 +2,7 @@ using JewelryMS.Domain.DTOs.Product;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Data;
 
 namespace JewelryMS.Domain.Interfaces.Services;
 
@@ -20,5 +21,5 @@ public interface IProductService
     Task<bool> DeleteProductAsync(Guid id, Guid userId, string role);
 
     Task<ProductMetadataResponse> GetProductMetadataAsync();
-    
+
 }

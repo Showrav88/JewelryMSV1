@@ -1,0 +1,202 @@
+using System;
+
+namespace JewelryMS.Application.Helpers;
+
+/// <summary>
+/// Helper class for BAJUS Return Policy calculations
+/// 
+/// POLICY SUMMARY:
+/// ┌─────────────────┬──────────────┬─────────────┬──────────────┐
+/// │ Scenario        │ Timeframe    │ Gold Credit │ Other Refund │
+/// ├─────────────────┼──────────────┼─────────────┼──────────────┤
+/// │ Exchange        │ 1-7 Days     │ 100%        │ 0%           │
+/// │ Exchange        │ After 7 Days │ 90%         │ 0%           │
+/// │ Cash Refund     │ Any Time     │ 85%         │ 0%           │
+/// └─────────────────┴──────────────┴─────────────┴──────────────┘
+/// 
+/// Note: Making Charges and VAT are NEVER refunded (protected as labor/tax)
+/// </summary>
+public class ReturnPolicyHelper
+{
+    // ═══════════════════════════════════════════════════════════════
+    // Grace Period Constants
+    // ═══════════════════════════════════════════════════════════════
+    
+    /// <summary>
+    /// 1-7 days = Grace period window for full 100% gold credit exchange
+    /// </summary>
+   private const int GRACE_PERIOD_DAYS = 7;
+private const decimal GOLD_CREDIT_WITHIN_GRACE = 100.0m;
+private const decimal GOLD_CREDIT_AFTER_GRACE = 90.0m;
+private const decimal GOLD_CREDIT_CASH_REFUND = 85.0m;
+
+// ═══════════════════════════════════════════════════════════════
+// Enums
+// ═══════════════════════════════════════════════════════════════
+
+public enum ReturnType
+{
+    Exchange = 1,
+    CashRefund = 2
+}
+
+public enum GracePeriodStatus
+{
+    WithinGracePeriod = 1,
+    AfterGracePeriod = 2,
+    BeyondReturnWindow = 3
+}
+
+public enum WeightExchangeType
+{
+    Heavier = 1,
+    Lighter = 2,
+    Exact = 3
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXISTING METHODS (Keep as-is)
+// ═══════════════════════════════════════════════════════════════
+
+public static int CalculateDaysSincePurchase(DateTime originalSaleDate)
+{
+    var utcNow = DateTime.UtcNow;
+    var utcSaleDate = originalSaleDate.ToUniversalTime();
+    return (utcNow.Date - utcSaleDate.Date).Days;
+}
+
+public static GracePeriodStatus DetermineGracePeriodStatus(int daysSincePurchase)
+{
+    if (daysSincePurchase >= 0 && daysSincePurchase <= GRACE_PERIOD_DAYS)
+        return GracePeriodStatus.WithinGracePeriod;
+    else if (daysSincePurchase > GRACE_PERIOD_DAYS)
+        return GracePeriodStatus.AfterGracePeriod;
+    else
+        return GracePeriodStatus.BeyondReturnWindow;
+}
+
+public static decimal GetGoldCreditPercentage(
+    ReturnType returnType,
+    GracePeriodStatus gracePeriodStatus)
+{
+    if (returnType == ReturnType.CashRefund)
+        return GOLD_CREDIT_CASH_REFUND;
+
+    if (returnType == ReturnType.Exchange)
+    {
+        return gracePeriodStatus == GracePeriodStatus.WithinGracePeriod
+            ? GOLD_CREDIT_WITHIN_GRACE
+            : GOLD_CREDIT_AFTER_GRACE;
+    }
+
+    return GOLD_CREDIT_CASH_REFUND;
+}
+
+public static decimal CalculateGoldCreditValue(
+    decimal grossWeight,
+    decimal currentMarketRate,
+    decimal creditPercentage)
+{
+    decimal creditValue = grossWeight * currentMarketRate * (creditPercentage / 100m);
+    return Math.Round(creditValue, 2);
+}
+
+public static string BuildCalculationSummary(
+    string productName,
+    decimal grossWeight,
+    string purity,
+    int daysSincePurchase,
+    GracePeriodStatus graceStatus,
+    decimal creditPercentage,
+    decimal currentRate,
+    decimal goldCreditValue,
+    decimal originalMakingCharge,
+    decimal originalVatAmount)
+{
+    string gracePeriodText = graceStatus == GracePeriodStatus.WithinGracePeriod
+        ? $"Within 7-day grace period ({daysSincePurchase} day(s))"
+        : $"After 7-day grace period ({daysSincePurchase} day(s))";
+
+    return $"Product: {productName} ({purity}), {grossWeight:F2}g\n" +
+        $"Days since purchase: {daysSincePurchase} - {gracePeriodText}\n" +
+        $"Gold credit: {creditPercentage:F0}% at ৳{currentRate:N0}/g = ৳{goldCreditValue:N2}\n" +
+        $"Making charge: ৳{originalMakingCharge:N2} (NOT refundable - labor cost)\n" +
+        $"VAT: ৳{originalVatAmount:N2} (NOT refundable - government tax)\n" +
+        $"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" +
+        $"TOTAL CREDIT: ৳{goldCreditValue:N2}";
+}
+
+public static bool IsReturnEligible(
+    int daysSincePurchase,
+    int? maxReturnDays = null)
+{
+    int maxDays = maxReturnDays ?? 90;
+    return daysSincePurchase >= 0 && daysSincePurchase <= maxDays;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NEW WEIGHT-BASED METHODS
+// ═══════════════════════════════════════════════════════════════
+
+/// <summary>
+/// Calculate weight-based credit
+/// </summary>
+public static decimal CalculateWeightCredit(
+    decimal originalWeight,
+    decimal creditPercentage)
+{
+    decimal creditWeight = originalWeight * (creditPercentage / 100m);
+    return Math.Round(creditWeight, 3);
+}
+
+/// <summary>
+/// Determine weight exchange type
+/// </summary>
+public static WeightExchangeType DetermineWeightExchangeType(
+    decimal weightDifference)
+{
+    if (weightDifference > 0.001m)
+        return WeightExchangeType.Heavier;
+    else if (weightDifference < -0.001m)
+        return WeightExchangeType.Lighter;
+    else
+        return WeightExchangeType.Exact;
+}
+
+/// <summary>
+/// Build weight-based exchange summary
+/// </summary>
+public static string BuildWeightExchangeSummary(
+    decimal originalWeight,
+    decimal creditWeight,
+    decimal newProductWeight,
+    decimal weightDifference,
+    WeightExchangeType exchangeType,
+    string purity)
+{
+    string exchangeTypeText = exchangeType switch
+    {
+        WeightExchangeType.Heavier => "Customer must provide additional gold",
+        WeightExchangeType.Lighter => "Shop retains extra gold",
+        WeightExchangeType.Exact => "Exact weight match",
+        _ => "Unknown"
+    };
+
+    string summary = 
+        $"WEIGHT-BASED EXCHANGE\n" +
+        $"──────────────────────────────────────\n" +
+        $"Original Weight: {originalWeight:F3}g ({purity})\n" +
+        $"Credit Available: {creditWeight:F3}g\n" +
+        $"New Product Weight: {newProductWeight:F3}g ({purity})\n" +
+        $"Weight Difference: {Math.Abs(weightDifference):F3}g\n" +
+        $"──────────────────────────────────────\n" +
+        $"Type: {exchangeTypeText}";
+
+    if (exchangeType == WeightExchangeType.Heavier)
+        summary += $"\n⚠️ Customer must bring {weightDifference:F3}g raw gold";
+    else if (exchangeType == WeightExchangeType.Lighter)
+        summary += $"\n✓ Shop keeps {Math.Abs(weightDifference):F3}g gold";
+
+    return summary;
+}
+}

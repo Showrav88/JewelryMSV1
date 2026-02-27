@@ -18,11 +18,19 @@ public class MetalRateRepository : BaseRepository, IMetalRateRepository
     public MetalRateRepository(NpgsqlDataSource dataSource, IHttpContextAccessor httpContextAccessor) 
         : base(dataSource, httpContextAccessor) { }
 
-    public async Task<MetalRate?> GetByPurityAsync(Guid shopId, string purity, IDbTransaction transaction)
+   public async Task<MetalRate?> GetByPurityAsync(Guid shopId, string purity, IDbTransaction? transaction = null)
     {
         // Use connection from the transaction
-        var connection = transaction.Connection ?? throw new ArgumentException("Transaction has no active connection.");
-        
+        IDbConnection? connection = null;
+    
+    if (transaction != null)
+    {
+        connection = transaction.Connection ?? throw new ArgumentException("Transaction has no active connection.");
+    }
+    else
+    {
+        connection = await GetOpenConnectionAsync();
+    }
         const string sql = @"
             SELECT 
                 id, shop_id AS ShopId, 

@@ -29,9 +29,8 @@ public class ProductCreateRequest
     [Range(0.001, 50000)]
     public decimal NetWeight { get; set; }
 
-    [Required]
-    [Range(0, 1000000)]
-    public decimal MakingCharge { get; set; }
+    public decimal MakingChargePerGram { get; set; }
+
 
     [Required]
     [Range(0.01, 1000000)]
@@ -44,4 +43,6 @@ public class ProductCreateRequest
     // NEW: Workshop Wastage
     [Range(0, 20)] // Typically 5-10%
     public decimal WorkshopWastagePercentage { get; set; } = 7.00m;
+
+    public bool IsHallmarked { get; set; } = false;
 }

@@ -1,0 +1,266 @@
+using System;
+using System.ComponentModel.DataAnnotations;
+
+namespace JewelryMS.Domain.DTOs.Sales;
+
+/// <summary>
+/// Request to process a product return/exchange
+/// 
+/// BAJUS RETURN POLICY:
+/// - 1-7 Days: 100% gold credit (at current rate), 0% making charge/VAT refund
+/// - After 7 Days: 90% gold credit (at current rate), 0% making charge/VAT refund
+/// - Cash Refund: 85% gold credit (at current rate), 0% making charge/VAT refund
+/// </summary>
+public class ProcessReturnRequest
+{
+    /// <summary>
+    /// Original invoice number of the product being returned
+    /// Example: "INV-20260222035903"
+    /// </summary>
+    [Required(ErrorMessage = "Original invoice number is required")]
+    public string OriginalInvoiceNo { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Product ID that is being returned
+    /// </summary>
+    [Required(ErrorMessage = "Product ID is required")]
+    public Guid ProductId { get; set; }
+
+    /// <summary>
+    /// Return type: "Exchange" or "CashRefund"
+    /// - Exchange: Customer exchanges for new product (100% or 90% credit)
+    /// - CashRefund: Customer wants money back (85% credit)
+    /// </summary>
+    [Required(ErrorMessage = "Return type is required")]
+    public string ReturnType { get; set; } = "Exchange"; // "Exchange" or "CashRefund"
+
+    /// <summary>
+    /// If ReturnType = "Exchange", the new product IDs being purchased
+    /// </summary>
+    public List<Guid>? NewProductIds { get; set; }
+
+    /// <summary>
+    /// Customer notes/reason for return
+    /// </summary>
+    public string? ReturnReason { get; set; }
+
+    /// <summary>
+    /// Discount percentage on new product (if exchanging)
+    /// </summary>
+    [Range(0, 100, ErrorMessage = "Discount must be between 0-100")]
+    public decimal DiscountPercentage { get; set; } = 0;
+}
+
+/// <summary>
+/// Response showing return calculation details
+/// </summary>
+public class ReturnCalculationResponse
+{
+    /// <summary>
+    /// Original invoice details
+    /// </summary>
+    public string OriginalInvoiceNo { get; set; } = string.Empty;
+    public DateTime OriginalSaleDate { get; set; }
+    public string? ProductName { get; set; } = string.Empty;
+    public decimal GrossWeight { get; set; }
+    public string? Purity { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Days since purchase
+    /// Used to determine which grace period applies
+    /// </summary>
+    public int DaysSincePurchase { get; set; }
+
+    /// <summary>
+    /// Grace period status
+    /// "WithinGracePeriod" (1-7 days): 100% gold credit
+    /// "AfterGracePeriod" (>7 days): 90% gold credit
+    /// "CashRefund" (any time): 85% gold credit
+    /// </summary>
+    public string GracePeriodStatus { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Current market rate for the gold (per gram)
+    /// </summary>
+    public decimal CurrentMarketRate { get; set; }
+
+    /// <summary>
+    /// Original selling rate (from when product was sold)
+    /// </summary>
+    public decimal OriginalSellingRate { get; set; }
+
+    /// <summary>
+    /// Gold credit calculation based on grace period
+    /// 
+    /// Formula: GrossWeight × CurrentMarketRate × GoldCreditPercentage
+    /// - Within 7 days: 100%
+    /// - After 7 days: 90%
+    /// - Cash refund: 85%
+    /// </summary>
+    public decimal GoldCreditPercentage { get; set; } // 100m, 90m, or 85m
+    
+    /// <summary>
+    /// Equivalent gold weight after credit percentage applied
+    /// </summary>
+    public decimal EquivalentGoldWeight { get; set; }
+    
+    /// <summary>
+    /// Summary of weight exchange calculation
+    /// Example: "Credit: 10.500g @ 100%"
+    /// </summary>
+    public string WeightExchangeSummary { get; set; } = string.Empty;
+    
+    public decimal TotalGoldCreditValue { get; set; }
+
+    /// <summary>
+    /// What customer paid for making charges in original transaction
+    /// (Not refundable - protected as labor cost)
+    /// </summary>
+    public decimal OriginalMakingCharge { get; set; }
+
+    /// <summary>
+    /// VAT paid on making charge in original transaction
+    /// (Not refundable - already paid to government)
+    /// </summary>
+    public decimal OriginalVatAmount { get; set; }
+
+    /// <summary>
+    /// Summary message explaining the calculation
+    /// </summary>
+    public string CalculationSummary { get; set; } = string.Empty;
+
+    /// <summary>
+    /// If customer is exchanging, show what they need to pay
+    /// Net payable = (NewProductCost - GoldCredit) + NewMakingCharge
+    /// </summary>
+    public decimal? ExchangeNetPayable { get; set; }
+
+    /// <summary>
+    /// If customer is getting cash refund
+    /// </summary>
+    public decimal? CashRefundAmount { get; set; }
+}
+
+/// <summary>
+/// Request to complete a return (after calculation approved)
+/// </summary>
+public class CompleteReturnRequest
+{
+    /// <summary>
+    /// Original invoice being returned against
+    /// </summary>
+    [Required(ErrorMessage = "Original invoice number is required")]
+    public string OriginalInvoiceNo { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Product being returned
+    /// </summary>
+    [Required(ErrorMessage = "Product ID is required")]
+    public Guid ProductId { get; set; }
+
+    /// <summary>
+    /// Type of return: "Exchange" or "CashRefund"
+    /// </summary>
+    [Required(ErrorMessage = "Return type is required")]
+    public string ReturnType { get; set; } = "Exchange";
+
+    /// <summary>
+    /// New product IDs if exchanging
+    /// </summary>
+    public List<Guid>? NewProductIds { get; set; }
+
+    /// <summary>
+    /// Gold credit amount calculated and approved
+    /// (Must match calculation from ProcessReturnRequest)
+    /// </summary>
+    [Required(ErrorMessage = "Gold credit amount is required")]
+    public decimal ApprovedGoldCreditValue { get; set; }
+
+    /// <summary>
+    /// Payment method for cash refund (if applicable)
+    /// </summary>
+    public string? RefundPaymentMethod { get; set; }
+
+    /// <summary>
+    /// Discount on new product (if exchanging)
+    /// </summary>
+    [Range(0, 100)]
+    public decimal DiscountPercentage { get; set; } = 0;
+    public string? ReturnReason { get; set; }
+}
+
+/// <summary>
+/// Response after return is processed
+/// </summary>
+public class ProcessReturnResponse
+{
+    /// <summary>
+    /// Return reference number (new invoice or refund ID)
+    /// </summary>
+    public string ReturnReferenceNo { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Status of the return
+    /// "Completed", "PartialExchange", etc.
+    /// </summary>
+    public string Status { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Original invoice being processed
+    /// </summary>
+    public string OriginalInvoiceNo { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Product returned
+    /// </summary>
+    public string ReturnedProductName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gold credit given to customer
+    /// </summary>
+    public decimal GoldCreditGiven { get; set; }
+
+    /// <summary>
+    /// Gold weight exchanged (from original product)
+    /// </summary>
+    public decimal GoldWeightExchanged { get; set; }
+
+    /// <summary>
+    /// Weight of new product(s) being purchased
+    /// </summary>
+    public decimal NewProductWeight { get; set; }
+
+    /// <summary>
+    /// Difference between new product weight and original gold weight
+    /// Positive = customer needs to provide more gold
+    /// Negative = shop retains excess gold
+    /// </summary>
+    public decimal WeightDifference { get; set; }
+
+    /// <summary>
+    /// Summary of weight exchange details
+    /// Example: "Original: 10.5g, New: 12.0g, Customer provides: 1.5g"
+    /// </summary>
+    public string WeightExchangeSummary { get; set; } = string.Empty;
+
+    /// <summary>
+    /// New invoice if exchanging
+    /// </summary>
+    public string? NewInvoiceNo { get; set; }
+
+    /// <summary>
+    /// Additional payment if new product costs more
+    /// Negative means customer gets cash back
+    /// </summary>
+    public decimal AdditionalPayment { get; set; }
+
+    /// <summary>
+    /// Summary message
+    /// </summary>
+    public string Message { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Timestamp of return processing
+    /// </summary>
+    public DateTime ProcessedAt { get; set; } = DateTime.UtcNow;
+}

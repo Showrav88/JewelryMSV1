@@ -8,7 +8,7 @@ namespace JewelryMS.Domain.Interfaces.Repositories;
 
 public interface IMetalRateRepository
 {
-    Task<MetalRate?> GetByPurityAsync(Guid shopId, string purity, IDbTransaction transaction);
+   Task<MetalRate?> GetByPurityAsync(Guid shopId, string purity, IDbTransaction? transaction = null);
     Task<IEnumerable<MetalRate>> GetShopRatesAsync(Guid shopId); // Read-only can stay simple
     Task<bool> UpdateRateAsync(MetalRate rate, MetalRate? oldRate, string userRole, IDbTransaction transaction);
 }

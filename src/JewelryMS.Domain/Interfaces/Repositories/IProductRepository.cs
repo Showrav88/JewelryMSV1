@@ -17,5 +17,4 @@ public interface IProductRepository
     Task<bool> UpdateWithAuditAsync(Product product, Product? oldProduct, Guid userId, string role, IDbTransaction? transaction = null);
     Task<bool> DeleteWithAuditAsync(Product product, Guid userId, string role, IDbTransaction? transaction = null);
     
-    // Task<bool> UpdateProductStatusAsync(Guid productId, string status);
 }

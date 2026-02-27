@@ -18,7 +18,7 @@ public class MetalRateService : IMetalRateService
     // Fixed business combinations to prevent "Silver 24K" type bugs
     private readonly Dictionary<string, string[]> _validMap = new() {
         { "Gold", new[] { "14K", "18K", "21K", "22K", "24K" } },
-        { "Silver", new[] { "925", "999" } },
+        { "Silver", new[] { "750", "925", "999" } },
         { "Platinum", new[] { "950" } }
     };
 

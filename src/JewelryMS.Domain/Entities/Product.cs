@@ -13,16 +13,19 @@ public class Product
     public decimal GrossWeight { get; set; }
     public decimal NetWeight { get; set; }
     public decimal MakingCharge { get; set; }
+
+    public decimal MakingChargePerGram { get; set; }
     
     public decimal CostMetalRate { get; set; }
     public decimal CostMakingCharge { get; set; }
     
     // NEW: Workshop Wastage Tracking
     public decimal WorkshopWastagePercentage { get; set; } = 7.00m; // Default 7%
-    
+    public bool IsHallmarked { get; set; } = false;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; } 
     public string Status { get; set; } = string.Empty;
     public Guid UpdatedBy { get; set; } 
     public Guid CreatedBy { get; set; }
+
 }
