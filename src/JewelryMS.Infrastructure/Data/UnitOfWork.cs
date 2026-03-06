@@ -4,7 +4,7 @@ using Npgsql;
 
 namespace JewelryMS.Infrastructure.Data;
 
-public class UnitOfWork : BaseRepository, JewelryMS.Domain.Interfaces.IUnitOfWork
+public class UnitOfWork : BaseRepository, Domain.Interfaces.IUnitOfWork
 {
     private IDbConnection? _connection;
     private IDbTransaction? _transaction;

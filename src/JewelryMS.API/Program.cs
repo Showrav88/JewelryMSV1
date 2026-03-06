@@ -101,6 +101,8 @@ builder.Services.AddScoped<IPublicProductRepository, PublicProductRepository>();
 builder.Services.AddScoped<IMetalRateRepository, MetalRateRepository>();
 builder.Services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
 builder.Services.AddScoped<ISaleRepository, SaleRepository>();
+builder.Services.AddScoped<IPurchaseRepository, PurchaseRepository>();
+builder.Services.AddScoped<ICustomerLookupRepository, CustomerLookupRepository>();
 
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -110,6 +112,7 @@ builder.Services.AddScoped<IPermissionService, PermissionService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<ISaleService, SaleService>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IPurchaseService, PurchaseService>();
 
 
 // --- 6. AUTHORIZATION LOGIC ---

@@ -1,41 +1,102 @@
 import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import LoginPage from './components/Auth/LoginPage';
 import RegisterPage from './components/Auth/RegisterPage';
 import Dashboard from './pages/Dashboard';
 import SalesPage from './pages/SalesPage';
+import PurchasePage from './pages/PurchasePage';
 
 function AppContent() {
-  const [currentPage, setCurrentPage] = useState('login');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => !!localStorage.getItem('token'));
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    setIsLoggedIn(!!token);
-    if (token) setCurrentPage('dashboard');
+    const sync = () => setIsLoggedIn(!!localStorage.getItem('token'));
+    window.addEventListener('storage', sync);
+    return () => window.removeEventListener('storage', sync);
   }, []);
 
-  if (!isLoggedIn) {
-    return currentPage === 'login' ? 
-      <LoginPage onRegisterClick={() => setCurrentPage('register')} /> : 
-      <RegisterPage onLoginClick={() => setCurrentPage('login')} />;
-  }
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+    navigate('/dashboard');
+  };
+
+  const handleLogout = () => {
+    localStorage.clear();
+    setIsLoggedIn(false);
+    navigate('/login');
+  };
 
   return (
-    <>
-      {currentPage === 'sales' ? 
-        <SalesPage onDashboardClick={() => setCurrentPage('dashboard')} /> : 
-        <Dashboard onSalesClick={() => setCurrentPage('sales')} />
-      }
-    </>
+    <Routes>
+      {/* ── Public routes ── */}
+      <Route
+        path="/login"
+        element={
+          isLoggedIn
+            ? <Navigate to="/dashboard" replace />
+            : <LoginPage
+                onLoginSuccess={handleLoginSuccess}
+                onRegisterClick={() => navigate('/register')}
+              />
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          isLoggedIn
+            ? <Navigate to="/dashboard" replace />
+            : <RegisterPage onLoginClick={() => navigate('/login')} />
+        }
+      />
+
+      {/* ── Protected routes ── */}
+      <Route
+        path="/dashboard"
+        element={
+          isLoggedIn
+            ? <Dashboard
+                onSalesClick={()    => navigate('/sales')}
+                onPurchaseClick={() => navigate('/purchase')}
+                onLogout={handleLogout}
+              />
+            : <Navigate to="/login" replace />
+        }
+      />
+      <Route
+        path="/sales"
+        element={
+          isLoggedIn
+            ? <SalesPage onDashboardClick={() => navigate('/dashboard')} />
+            : <Navigate to="/login" replace />
+        }
+      />
+      <Route
+        path="/purchase"
+        element={
+          isLoggedIn
+            ? <PurchasePage onDashboardClick={() => navigate('/dashboard')} />
+            : <Navigate to="/login" replace />
+        }
+      />
+
+      {/* ── Fallback ── */}
+      <Route
+        path="*"
+        element={<Navigate to={isLoggedIn ? '/dashboard' : '/login'} replace />}
+      />
+    </Routes>
   );
 }
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

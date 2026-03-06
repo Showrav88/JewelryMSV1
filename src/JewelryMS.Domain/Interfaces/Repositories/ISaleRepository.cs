@@ -18,5 +18,5 @@ public interface ISaleRepository
     
     Task<IEnumerable<InvoiceDetailResponse>> GetInvoiceDetailsForPdfAsync(string invoiceNo);
 
-
+    Task<IEnumerable<SaleSummaryResponse>> GetAllByShopAsync();
 }

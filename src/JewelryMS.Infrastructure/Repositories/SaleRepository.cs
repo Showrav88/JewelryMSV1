@@ -116,6 +116,21 @@ public class SaleRepository : BaseRepository, ISaleRepository
             new { InvoiceNo = invoiceNo }
         );
     }
-
+public async Task<IEnumerable<SaleSummaryResponse>> GetAllByShopAsync()
+{
+    using var db = await GetOpenConnectionAsync();
+    return await db.QueryAsync<SaleSummaryResponse>(@"
+        SELECT
+            s.id                    AS sale_id,
+            s.invoice_no,
+            c.full_name             AS customer_name,
+            s.sale_date,
+            s.net_payable,
+            s.status::text          AS status,
+            s.payment_method::text  AS payment_method
+        FROM  sales s
+        JOIN  customers c ON c.id = s.customer_id
+        ORDER BY s.sale_date DESC");
+}
   
 }

@@ -42,5 +42,6 @@ public interface ISaleService
         List<Guid> productIds, 
         decimal lossPercentage, 
         Guid shopId);
-
+ Task<IEnumerable<SaleSummaryResponse>> GetAllAsync();
+Task<IEnumerable<InvoiceDetailResponse>> GetInvoiceByNumberAsync(string invoiceNo);
 }

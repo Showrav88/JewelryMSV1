@@ -83,7 +83,21 @@ public class SalesController : BaseApiController
             return BadRequest(ex.Message);
         }
     }
+    [HttpGet]
+[HttpGet]
+public async Task<IActionResult> GetAll()
+{
+    var sales = await _saleService.GetAllAsync();
+    return Ok(sales);
+}
 
+[HttpGet("{invoiceNo}")]
+public async Task<IActionResult> GetByInvoiceNo(string invoiceNo)
+{
+    var details = await _saleService.GetInvoiceByNumberAsync(invoiceNo);
+    if (details == null || !details.Any()) return NotFound();
+    return Ok(details);
+}
     /// <summary>
     /// Get invoice details (admin report)
     /// </summary>
